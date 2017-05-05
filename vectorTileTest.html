@@ -1,98 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>VectorGrid.Protobuf example</title>
-	<meta charset="utf-8" />
+  <title>VectorGrid.Protobuf example</title>
+  <meta charset="utf-8" />
 
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
-	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
-	<script src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
-<!-- 	<script src="../dist/Leaflet.VectorGrid.bundled.js"></script> -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
+  <!-- 	<script src="../dist/Leaflet.VectorGrid.bundled.js"></script> -->
 </head>
 <body style='margin:0'>
-	<div id="map" style="width: 100vw; height: 100vh; background: white"></div>
+  <div id="map" style="width: 100vw; height: 100vh; background: white"></div>
+  <style>
+  .infoBox {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+  }
+  .infoBox h4 {
+    margin: 0 0 5px;
+    color: #777;
+  }
+  </style>
+  <script>
 
+  var map = L.map('map', {maxZoom: 15} );
 
-<!--	<script type="text/javascript" src="../vendor/pbf-dev.js"></script>
-	<script type="text/javascript" src="../vendor/vector-tile-dev.js"></script>
+  var precinctTilesUrl = "./nmprecincts/{z}/{x}/{y}.pbf";
 
-	<script type="text/javascript" src="../src/Leaflet.Renderer.SVG.Tile.js"></script>
-	<script type="text/javascript" src="../src/Leaflet.Renderer.Canvas.Tile.js"></script>
-	<script type="text/javascript" src="../src/Leaflet.VectorGrid.js"></script>
-	<script type="text/javascript" src="../src/Leaflet.VectorGrid.Protobuf.js"></script>-->
+  var defaultStyle = {
+    fill: false,
+    weight: 2,
+    color: '#0000cc',
+    opacity: 1.0,
+  }
 
-	<script>
+  var highlightStyle = {
+    fill: true,
+    weight: 3,
+    fillColor: '#cc0000',
+    color: '#cc00cc',
+    fillOpacity: 0.5,
+    opacity: 0.4,
+  }
 
-		var map = L.map('map', {maxZoom: 15} );
+  var precinctVectorTileOptions = {
+    rendererFactory: L.canvas.tile,// L.svg.tile,
+    attribution: 'UNM',
+    interactive: true,
+    getFeatureId: function(f) {
+      //console.log(f.properties)
+      return f.properties.id
+    },
+    vectorTileLayerStyles: {
+      "geojsonLayer": defaultStyle
+    },
+  };
 
-    var precinctTilesUrl = "./nmprecincts/{z}/{x}/{y}.pbf";
-
-    var defaultStyle = {
-      fill: false,
-      weight: 2,
-      color: '#0000cc',
-      opacity: 1.0,
+  var highlighted = 0
+  var precinctTilesPbfLayer = L.vectorGrid.protobuf(precinctTilesUrl, precinctVectorTileOptions).on('mouseover', function(e) {
+    var properties = e.layer.properties;
+    //console.log(properties.id)
+    if (properties.id !== highlighted) {
+      precinctTilesPbfLayer.setFeatureStyle(highlighted, defaultStyle)
+      precinctTilesPbfLayer.setFeatureStyle(properties.id, highlightStyle)
+      highlighted = properties.id
+      infoBox.update(properties)
     }
+  })
 
-    var highlightStyle = {
-      fill: true,
-      weight: 3,
-      fillColor: '#cc0000',
-      color: '#cc00cc',
-      fillOpacity: 0.5,
-      opacity: 0.4,
-    }
 
-    var precinctVectorTileOptions = {
-      rendererFactory: L.canvas.tile,// L.svg.tile,
-      attribution: 'UNM',
-      interactive: true,
-			getFeatureId: function(f) {
-        //console.log(f.properties)
-				return f.properties.id
-			},
-      vectorTileLayerStyles: {
-  			"geojsonLayer": defaultStyle
-			},
-    };
+  map.setView({ lat: 35.040182144806664, lng: -106.667968750000002 }, 12);
 
-    var highlighted = 0
-    var precinctTilesPbfLayer = L.vectorGrid.protobuf(precinctTilesUrl, precinctVectorTileOptions).on('mouseover', function(e) {
-			var properties = e.layer.properties;
-			//console.log(properties.id)
-      if (properties.id !== highlighted) {
-        /*L.popup()
-        .setContent('hello' + properties.id)//properties.id)
-        .setLatLng(e.latlng)
-        .openOn(map);*/
-        precinctTilesPbfLayer.setFeatureStyle(highlighted, defaultStyle)
-        precinctTilesPbfLayer.setFeatureStyle(properties.id, highlightStyle)
-        highlighted = properties.id
+  //national geographic
+  var ngLayer = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}")
+  // OSM
+  var osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+
+  map.addLayer(ngLayer)
+  map.addLayer(precinctTilesPbfLayer)
+  
+  L.control.layers({
+    "National Geographic": ngLayer,
+    "Open Street Maps": osmLayer,
+  }, {"precincts": precinctTilesPbfLayer},
+  {collapsed: false})
+  .addTo(map);
+
+  var infoBox = L.control();
+
+  infoBox.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'infoBox'); // create a div with a class "infoBox"
+    this.update();
+    return this._div;
+  };
+
+  // method that we will use to update the control based on feature properties passed
+  infoBox.update = function (props) {
+    console.log(props)
+    if (!props) {
+      this._div.innerHTML = `<h4>Hover over a Precinct</h4>`
+    } else {
+      this._div.innerHTML = `<h4>${props.NAME}</h4>`
+      for (var i in props) {
+        this._div.innerHTML += `<b>${i}</b> ${props[i]} </br>`
       }
+    }
+  };
 
-      //clearHighlight();
-      //highlight = properties.wb_a3;
-		})
+  infoBox.addTo(map);
 
-
-		map.setView({ lat: 35.040182144806664, lng: -106.667968750000002 }, 12);
-
-    //national geographic
-    var ngLayer = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}")
-       // OSM
-    var osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
-
-    map.addLayer(ngLayer)
-    map.addLayer(precinctTilesPbfLayer)
-
-		L.control.layers({
-      "National Geographic": ngLayer,
-      "Open Street Maps": osmLayer,
-      // "precincts": precinctTilesPbfLayer,
-		}, {}, {collapsed: false}).addTo(map);
-
-	</script>
+  </script>
 </body>
 </html>
