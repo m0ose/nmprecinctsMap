@@ -1,0 +1,15 @@
+{
+  "name": "nm_precincts",
+  "version": "0.0.1",
+  "description": "map of nm precincts",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "geojson-vt": "^2.4.0",
+    "vt-pbf": "^2.1.2"
+  }
+}

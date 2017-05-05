@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>VectorGrid.Protobuf example</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+	<script src="https://unpkg.com/leaflet.vectorgrid@1.2.0"></script>
+<!-- 	<script src="../dist/Leaflet.VectorGrid.bundled.js"></script> -->
+</head>
+<body style='margin:0'>
+	<div id="map" style="width: 100vw; height: 100vh; background: white"></div>
+
+
+<!--	<script type="text/javascript" src="../vendor/pbf-dev.js"></script>
+	<script type="text/javascript" src="../vendor/vector-tile-dev.js"></script>
+
+	<script type="text/javascript" src="../src/Leaflet.Renderer.SVG.Tile.js"></script>
+	<script type="text/javascript" src="../src/Leaflet.Renderer.Canvas.Tile.js"></script>
+	<script type="text/javascript" src="../src/Leaflet.VectorGrid.js"></script>
+	<script type="text/javascript" src="../src/Leaflet.VectorGrid.Protobuf.js"></script>-->
+
+	<script>
+
+		var map = L.map('map', {maxZoom: 15} );
+
+    var precinctTilesUrl = "./nmprecincts/{z}/{x}/{y}.pbf";
+
+    var defaultStyle = {
+      fill: false,
+      weight: 2,
+      color: '#0000cc',
+      opacity: 1.0,
+    }
+
+    var highlightStyle = {
+      fill: true,
+      weight: 3,
+      fillColor: '#cc0000',
+      color: '#cc00cc',
+      fillOpacity: 0.5,
+      opacity: 0.4,
+    }
+
+    var precinctVectorTileOptions = {
+      rendererFactory: L.canvas.tile,// L.svg.tile,
+      attribution: 'UNM',
+      interactive: true,
+			getFeatureId: function(f) {
+        //console.log(f.properties)
+				return f.properties.id
+			},
+      vectorTileLayerStyles: {
+  			"geojsonLayer": defaultStyle
+			},
+    };
+
+    var highlighted = 0
+    var precinctTilesPbfLayer = L.vectorGrid.protobuf(precinctTilesUrl, precinctVectorTileOptions).on('mouseover', function(e) {
+			var properties = e.layer.properties;
+			//console.log(properties.id)
+      if (properties.id !== highlighted) {
+        /*L.popup()
+        .setContent('hello' + properties.id)//properties.id)
+        .setLatLng(e.latlng)
+        .openOn(map);*/
+        precinctTilesPbfLayer.setFeatureStyle(highlighted, defaultStyle)
+        precinctTilesPbfLayer.setFeatureStyle(properties.id, highlightStyle)
+        highlighted = properties.id
+      }
+
+      //clearHighlight();
+      //highlight = properties.wb_a3;
+		})
+
+
+		map.setView({ lat: 35.040182144806664, lng: -106.667968750000002 }, 12);
+
+    //national geographic
+    var ngLayer = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}")
+       // OSM
+    var osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+
+    map.addLayer(ngLayer)
+    map.addLayer(precinctTilesPbfLayer)
+
+		L.control.layers({
+      "National Geographic": ngLayer,
+      "Open Street Maps": osmLayer,
+      // "precincts": precinctTilesPbfLayer,
+		}, {}, {collapsed: false}).addTo(map);
+
+	</script>
+</body>
+</html>
